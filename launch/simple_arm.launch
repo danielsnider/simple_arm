@@ -1,21 +1,22 @@
 <launch>
   <env name="ROSCONSOLE_FORMAT" value="[${severity}][${thread}][${node}/${function}:${line}]: ${message}"/>
 
-  <arg name="image" default="image_topic"/>
-  <arg name="images_path" default="$(find hugin_panorama)images"/>
-
-  <group ns="hugin_panorama">
-    <node pkg="image_view" type="image_saver" name="image_saver" output="screen">
-      <param name="filename_format" value="$(arg images_path)/%04i.png"/>
-      <param name="save_all_image" value="false"/>
-      <!-- INPUT TOPICS -->
-      <remap from="image" to="$(arg image)" />
-    </node>
-
-    <node pkg="hugin_panorama" type="hugin_panorama" name="hugin_panorama" output="screen">
-      <param name="images_path" value="$(arg images_path)"/>
+  <!-- Joystick Node -->
+  <arg name="joystick_serial_device" default="/dev/input/js0"/>
+  <node pkg="joy" type="joy_node" name="joy_node" clear_params="true" >
+    <param name="deadzone" value="0.12" />
+    <param name="coalesce_interval" value="0.1" />
+      <!-- INPUT DEVICE -->
+    <param name="dev" value="$(arg joystick_serial_device)" />
       <!-- OUTPUT TOPICS -->
-      <remap from="panorama/compressed" to="panorama/compressed" />
-    </node>
-  </group>
+    <remap from="joy" to="joy_arm" />
+  </node>
+
+  <!-- Simple Arm Node -->
+  <arg name="microcontroller_serial_device" default="/dev/ttyACM0"/>
+  <node pkg="simple_arm" name="simple_arm" type="simple_arm.py" output="screen" >
+    <param name="serial_device" value="$(arg microcontroller_serial_device)" />
+    <param name="baudrate" type="int" value="9600"/>
+  </node>
+
 </launch>
