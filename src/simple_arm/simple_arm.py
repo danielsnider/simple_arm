@@ -6,7 +6,7 @@ import numpy as np
 
 from sensor_msgs.msg import Joy
 
-class JoyArmSerial:
+class SimpleArm:
     def __init__(self):
         self.velocities = {
             'grip': 0,
@@ -21,15 +21,15 @@ class JoyArmSerial:
         }
         baudrate = rospy.get_param('~baudrate', 9600)
         self.serialDev = serial.Serial(baudrate=baudrate)
-        self.serialDev.port = rospy.get_param("~serial_dev")
+        self.serialDev.port = rospy.get_param("~microcontroller_serial_device")
         self.serialDev.open()
-        self.arm_sub = rospy.Subscriber("/joy_arm", Joy, controller.arm_joy_callback)
+        self.arm_sub = rospy.Subscriber("/joy_arm", Joy, self.arm_joy_callback)
 
     def write_serial(self):
       # Execute arm position
         rospy.loginfo('velocities:%s\n' % self.velocities)
         rospy.loginfo('positions:%s\n' % self.positions)
-        encoded_position = struct.pack("<fffffffff",
+        encoded_position = struct.pack("<fffffff",
                                         self.velocities['grip'],
                                         self.velocities['wrist_roll'],
                                         self.velocities['wrist_pitch'],
@@ -48,24 +48,24 @@ class JoyArmSerial:
         self.velocities['lower_elbow'] = 0
         self.velocities['base_yaw'] = 0
 
-        # button 12 = double speed
+        # button 12 = hold button to double motor speed
         SPEED_MULTIPLIER = 1
         if data.buttons[11]:
             SPEED_MULTIPLIER = 2
-        # button 10 = half speed
+        # button 10 = hold button to half motor speed
         if data.buttons[9]:
             SPEED_MULTIPLIER = 0.5
 
-        # +big stick twist = base clockwise
-        # -big stick twist = base counter-clockwise
+        # big stick twist = base clockwise
+        # big stick twist = base counter-clockwise
         self.velocities['base_yaw'] = data.axes[2] / 5.0 * SPEED_MULTIPLIER
 
-        # +big stick forward = big arm up
-        # -big stick back = big arm down
+        # big stick forward = lower elbow up
+        # big stick back = lower elbow down
         self.velocities['lower_elbow'] = data.axes[1] / 3.0 * SPEED_MULTIPLIER
 
-        # thumb stick forward = small arm down
-        # thumb stick back = small arm up
+        # thumb stick forward = upper elbow down
+        # thumb stick back = upper elbow up
         self.velocities['upper_elbow'] = data.axes[5] / 5.0 * SPEED_MULTIPLIER
 
         # paddle forward = arm camera up
@@ -98,6 +98,6 @@ class JoyArmSerial:
 
 
 def main():
-    rospy.init_node("joystick_teleoperation_arm")
-    controller = JoyArmSerial()
+    rospy.init_node("simple_arm")
+    controller = SimpleArm()
     rospy.spin()
