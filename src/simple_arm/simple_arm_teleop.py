@@ -9,15 +9,15 @@ from sensor_msgs.msg import Joy
 class JoyArmSerial:
     def __init__(self):
         self.velocities = {
+            'grip': 0,
             'wrist_roll': 0,
             'wrist_pitch': 0,
-            'small_arm': 0,
-            'big_arm': 0,
-            'base_yaw': 0,
-            'grip': 0
+            'upper_elbow': 0,
+            'lower_elbow': 0,
+            'base_yaw': 0
         }
         self.positions = {
-            'arm_camera': 0
+            'camera': 0
         }
         baudrate = rospy.get_param('~baudrate', 9600)
         self.serialDev = serial.Serial(baudrate=baudrate)
@@ -30,23 +30,23 @@ class JoyArmSerial:
         rospy.loginfo('velocities:%s\n' % self.velocities)
         rospy.loginfo('positions:%s\n' % self.positions)
         encoded_position = struct.pack("<fffffffff",
+                                        self.velocities['grip'],
                                         self.velocities['wrist_roll'],
                                         self.velocities['wrist_pitch'],
-                                        self.velocities['small_arm'],
-                                        self.velocities['big_arm'],
+                                        self.velocities['upper_elbow'],
+                                        self.velocities['lower_elbow'],
                                         self.velocities['base_yaw'],
-                                        self.velocities['grip'],
-                                        self.positions['arm_camera']
+                                        self.positions['camera']
                                         )
         self.serialDev.write(encoded_position)
 
     def arm_joy_callback(self, data):
+        self.velocities['grip'] = 0
         self.velocities['wrist_roll'] = 0
         self.velocities['wrist_pitch'] = 0
-        self.velocities['small_arm'] = 0
-        self.velocities['big_arm'] = 0
+        self.velocities['upper_elbow'] = 0
+        self.velocities['lower_elbow'] = 0
         self.velocities['base_yaw'] = 0
-        self.velocities['grip'] = 0
 
         # button 12 = double speed
         SPEED_MULTIPLIER = 1
@@ -62,15 +62,15 @@ class JoyArmSerial:
 
         # +big stick forward = big arm up
         # -big stick back = big arm down
-        self.velocities['big_arm'] = data.axes[1] / 3.0 * SPEED_MULTIPLIER
+        self.velocities['lower_elbow'] = data.axes[1] / 3.0 * SPEED_MULTIPLIER
 
         # thumb stick forward = small arm down
         # thumb stick back = small arm up
-        self.velocities['small_arm'] = data.axes[5] / 5.0 * SPEED_MULTIPLIER
+        self.velocities['upper_elbow'] = data.axes[5] / 5.0 * SPEED_MULTIPLIER
 
-        # paddle forward = arm arm_camera up
-        # paddle back = arm arm_camera down
-        self.positions['arm_camera'] = np.interp(data.axes[3],[-1,1],[7,77]) # this value is angular postion in degrees
+        # paddle forward = arm camera up
+        # paddle back = arm camera down
+        self.positions['camera'] = np.interp(data.axes[3],[-1,1],[7,77]) # this value is angular postion in degrees
 
         # button 9 = wrist clockwise
         # button 11 = wrist counter-clockwise
@@ -95,7 +95,6 @@ class JoyArmSerial:
 
         # MOVE ARM
         self.write_serial()
-
 
 
 def main():
