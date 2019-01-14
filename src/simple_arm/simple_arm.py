@@ -21,7 +21,7 @@ class SimpleArm:
         }
         baudrate = rospy.get_param('~baudrate', 9600)
         self.serialDev = serial.Serial(baudrate=baudrate)
-        self.serialDev.port = rospy.get_param("~microcontroller_serial_device")
+        self.serialDev.port = rospy.get_param("~serial_device")
         self.serialDev.open()
         self.arm_sub = rospy.Subscriber("/joy_arm", Joy, self.arm_joy_callback)
 
